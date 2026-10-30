@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doing leadership research well — Leadership Research Days 2026</title>
+<style>
+  /* ============ theme tokens — keep --bg IDENTICAL to manim's
+     config.background_color so videos blend into the page ============ */
+  :root{
+    --bg:#0A0E1A; --panel:#111827; --grid:#1E293B;
+    --txt:#E5E7EB; --mut:#94A3B8;
+    --green:#22C55E; --red:#EF4444; --sky:#38BDF8; --amber:#F59E0B; --violet:#A78BFA;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--bg);color:var(--txt);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overflow:hidden}
+
+  .deck{position:relative;width:100vw;height:100vh}
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;
+    padding:4.5vh 4.5vw;opacity:0;visibility:hidden;transform:translateY(14px);
+    transition:opacity .45s ease,transform .45s ease,visibility .45s}
+  .slide.active{opacity:1;visibility:visible;transform:none}
+
+  /* typography — sized for a projector back row; bump, don't shrink */
+  h1{font-size:clamp(3rem,7vw,7rem);font-weight:800;line-height:1.04;letter-spacing:-.02em}
+  h2{font-size:clamp(2rem,4.2vw,4rem);font-weight:700;letter-spacing:-.015em;line-height:1.1}
+  .kicker{font-size:clamp(.95rem,1.35vw,1.3rem);font-weight:600;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--sky);margin-bottom:1vh}
+  .sub{color:var(--mut);font-size:clamp(1.35rem,2.2vw,2.1rem);font-weight:400;line-height:1.5}
+  .accent-g{color:var(--green)} .accent-r{color:var(--red)} .accent-s{color:var(--sky)}
+  .accent-a{color:var(--amber)} .accent-v{color:var(--violet)}
+
+  .center{align-items:center;justify-content:center;text-align:center}
+  .vfill{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+  .cols{display:flex;gap:3vw;flex:1;min-height:0;align-items:center}
+  .col{flex:1;min-width:0}
+
+  /* ============ video slides: the in-video manim title IS the headline. ============ */
+  .vidwrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+  /* fill the stage at any render quality: 720p drafts are scaled up so a review matches the 1080p final */
+  video.anim{width:min(100%,calc(95.6vh * 16 / 9));height:auto;max-height:100%;border-radius:14px;cursor:pointer}
+  .caption{color:var(--mut);font-size:clamp(.95rem,1.35vw,1.35rem);text-align:center}
+  .slide:has(.vidwrap) h2{display:none}
+  .slide:has(.vidwrap){padding:2.2vh 2.5vw}
+  /* the engine freezes the current frame on a position:fixed canvas (z-index 40) over the video's rect while the
+     next segment loads; the kicker, caption and dots sit inside that rect, so they stack above it or blink on every click */
+  .slide:has(.vidwrap) .kicker{position:absolute;top:2vh;left:2.5vw;z-index:45;margin:0}
+  .slide:has(.vidwrap) .caption{position:absolute;bottom:.9vh;left:0;right:0;z-index:45;margin:0}
+  /* slide 6 (sens) opens on the final frame of slide 5 (smoke): no vertical shift, and slide 5 stays put
+     underneath while slide 6 fades in, so the diagram does not blink on the hand-over */
+  .slide[data-name="sens"]{transform:none}
+  .slide[data-name="smoke"]:has(+ .slide.active){transform:none;transition:opacity 0s linear .45s,visibility 0s linear .45s}
+  .slide[data-name="smoke"]:has(+ .slide.active) :is(.kicker,.caption,.segdots){opacity:0;transition:opacity .2s}
+
+  .frag{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+  .frag.on{opacity:1;transform:none}
+
+  .cards{display:flex;gap:1.6vw;justify-content:center;flex-wrap:wrap}
+  .card{background:var(--panel);border:1px solid var(--grid);border-radius:16px;
+    padding:3vh 2.2vw;text-align:center;min-width:13.5vw;max-width:21vw}
+  .card .big{font-size:clamp(2.4rem,4.6vw,4.6rem);font-weight:800;line-height:1.05}
+  .card .lbl{color:var(--mut);font-size:clamp(1.1rem,1.5vw,1.45rem);margin-top:.8vh;line-height:1.35}
+  .card .src{color:#64748B;font-size:clamp(.8rem,1.05vw,1.05rem);margin-top:1.2vh}
+  .card .ph{color:var(--amber);font-size:clamp(.85rem,1.1vw,1.1rem);margin-top:.6vh}
+
+  /* pull quote */
+  .quote{border-left:5px solid var(--amber);background:var(--panel);border-radius:0 16px 16px 0;
+    padding:2.2vh 2.2vw;max-width:84vw;font-size:clamp(1.35rem,2.3vw,2.25rem);line-height:1.38;font-style:italic}
+  .quote cite{display:block;margin-top:1.1vh;color:var(--mut);font-size:.58em;font-style:normal}
+  .quote .gloss{display:block;margin-top:1.3vh;font-style:normal;font-weight:700;color:var(--amber);font-size:.78em}
+
+  /* clip overlay on a video slide: revealed as the last fragment, after all video segments */
+  .gifover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:1.2vh;background:rgba(10,14,26,.8);z-index:46;pointer-events:none}
+  .gifover img,.gifover video{width:min(84vw,142vh);border-radius:14px;border:1px solid var(--grid);
+    box-shadow:0 18px 60px rgba(0,0,0,.6)}
+  .gifover .cap{color:var(--mut);font-size:clamp(.8rem,1.1vw,1.05rem)}
+
+  ul.rows{list-style:none;display:flex;flex-direction:column;gap:3.2vh;
+    font-size:clamp(1.5rem,2.7vw,2.6rem);font-weight:400;line-height:1.45}
+  ul.rows li{display:flex;gap:1.2vw;align-items:flex-start}
+  ul.rows .n{font-weight:800;color:var(--sky);min-width:2.2ch}
+  ul.rows b{font-weight:700;color:#fff}
+  ul.rows.tight{gap:2.2vh;font-size:clamp(1.25rem,2.15vw,2.1rem)}
+  ul.rows.tight small{display:block;color:var(--mut);font-size:.72em;line-height:1.35;margin-top:.3vh}
+
+  /* reference rows: paper on the left, what it does right on the right */
+  .refs{display:flex;flex-direction:column;gap:1.3vh;width:100%}
+  .ref{display:grid;grid-template-columns:28vw 1fr;gap:2.2vw;align-items:start;
+    background:var(--panel);border:1px solid var(--grid);border-radius:14px;padding:1.3vh 1.6vw}
+  .ref .who{font-weight:700;font-size:clamp(1.05rem,1.7vw,1.65rem);line-height:1.25}
+  .ref .who small{display:block;color:var(--mut);font-weight:400;font-size:.7em;margin-top:.4vh}
+  .ref .what{font-size:clamp(1.05rem,1.7vw,1.65rem);line-height:1.4;color:var(--txt)}
+  .ref .what b{color:#fff}
+  .ref.hl{border-color:var(--amber);border-width:2px}
+  .ref.hl .who{color:var(--amber)}
+
+  /* the "same move for every design" table */
+  .tbl{display:grid;grid-template-columns:19vw 1fr;gap:.9vh 2vw;width:100%;align-content:start}
+  .tbl .k{font-weight:700;color:var(--sky);font-size:clamp(1.2rem,2vw,1.95rem);padding:1.3vh 0;border-top:1px solid var(--grid)}
+  .tbl .v{font-size:clamp(1.2rem,2vw,1.95rem);line-height:1.4;padding:1.3vh 0;border-top:1px solid var(--grid)}
+  .tbl .v small{display:block;color:var(--mut);font-size:.72em;margin-top:.3vh}
+  /* three-column variant: design | what it assumes | the yardstick for "how wrong?" */
+  .tbl3{display:grid;grid-template-columns:21vw 25vw 1fr;gap:0 2.2vw;width:100%;align-content:start}
+  .tbl3 > div{padding:2.2vh 0;border-top:1px solid var(--grid);font-size:clamp(1.25rem,2.1vw,2.05rem);line-height:1.35}
+  .tbl3 .h{border-top:none;padding:0 0 1vh;color:var(--mut);font-weight:600;letter-spacing:.1em;
+    text-transform:uppercase;font-size:clamp(.9rem,1.25vw,1.2rem)}
+  .tbl3 .k{font-weight:700;color:var(--sky)}
+  .tbl3 b{color:#fff}
+  .tbl3 small{display:block;color:var(--mut);font-size:.66em;margin-top:.5vh}
+
+  /* numbered steps (statistical -> practical) */
+  .steps{display:grid;grid-template-columns:repeat(2,1fr);gap:1.8vh 2vw;width:100%}
+  .step{background:var(--panel);border:1px solid var(--grid);border-radius:16px;padding:1.7vh 1.6vw;min-height:22vh}
+  .step .num{font-weight:800;font-size:clamp(1.6rem,2.7vw,2.6rem);line-height:1}
+  .step .head{font-weight:700;font-size:clamp(1.35rem,2.2vw,2.15rem);margin-top:.8vh;line-height:1.25}
+  .step .body{color:var(--mut);font-size:clamp(1.15rem,1.75vw,1.7rem);line-height:1.42;margin-top:1.2vh}
+  .step .body b{color:var(--txt)}
+
+  /* question cards (day-one slide) and checklist */
+  .qgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:2vw;width:100%}
+  .q{background:var(--panel);border:1px solid var(--grid);border-radius:16px;padding:3vh 2vw;min-height:46vh;
+    display:flex;flex-direction:column;gap:1.6vh}
+  .q .pill{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:clamp(.9rem,1.25vw,1.2rem)}
+  .q .ask{font-size:clamp(1.3rem,2.25vw,2.2rem);font-weight:700;line-height:1.3}
+  .q .hint{color:var(--mut);font-size:clamp(1rem,1.5vw,1.45rem);line-height:1.45}
+  .check{display:grid;grid-template-columns:repeat(3,1fr);gap:2vw;width:100%}
+  .check .colh{font-weight:800;font-size:clamp(1.3rem,2.2vw,2.1rem);margin-bottom:1.4vh}
+  .check ul{list-style:none;display:flex;flex-direction:column;gap:1.4vh;font-size:clamp(1.1rem,1.75vw,1.7rem);line-height:1.4}
+  .check li::before{content:"☐  ";color:var(--mut)}
+
+  /* act dividers: one quiet accent, white fading into the deck's sky blue */
+  .divider h1{font-size:clamp(3.4rem,8.5vw,8rem);
+    background:linear-gradient(90deg,#F1F5F9 30%,var(--sky));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+
+  /* chrome */
+  #progress{position:fixed;left:0;bottom:0;height:4px;width:0;z-index:50;
+    background:linear-gradient(90deg,var(--sky),var(--green));transition:width .3s}
+  #counter{position:fixed;right:1.4vw;bottom:1.6vh;color:var(--mut);
+    font-size:.95rem;z-index:50;font-variant-numeric:tabular-nums}
+  #help{position:fixed;left:1.4vw;bottom:1.6vh;color:var(--grid);font-size:.75rem;z-index:50}
+  .segdots{position:absolute;top:2.1vh;right:2.5vw;display:flex;gap:.5vw;z-index:45}
+  .segdots i{width:.62vw;height:.62vw;min-width:7px;min-height:7px;border-radius:50%;
+    background:var(--grid);transition:background .3s}
+  .segdots i.on{background:var(--sky)}
+
+  .footnote{position:absolute;bottom:2.2vh;left:6vw;right:6vw;color:#64748B;
+    font-size:clamp(.75rem,1vw,.95rem);text-align:left}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 ▸ TITLE -->
+  <section class="slide center" data-name="title">
+    <div class="fg">
+      <div class="kicker">Leadership Research Days · ACLOS+ · Aarhus 2026</div>
+      <h1>Doing leadership<br>research well</h1>
+      <p class="sub" style="margin-top:2.4vh">Three weak pillars — and how to make them strong</p>
+      <p class="sub" style="margin-top:5vh">Jesper N. Wulff · Aarhus University</p>
+    </div>
+  </section>
+
+  <!-- 2 ▸ HOOK: the temple -->
+  <section class="slide" data-name="pillars">
+    <div class="vidwrap"><video class="anim" muted playsinline
+      data-src="videos/pillars_s0.mp4"
+      data-seq="videos/pillars_s0.mp4|videos/pillars_s1.mp4|videos/pillars_s2.mp4|videos/pillars_s3.mp4|videos/pillars_s4.mp4|videos/pillars_s5.mp4|videos/pillars_s6.mp4"></video></div>
+    <p class="caption">Every empirical leadership claim stands on a model, a hypothesis and a test.</p>
+  </section>
+
+  <!-- 3 ▸ ACT I DIVIDER -->
+  <section class="slide center divider" data-name="act1">
+    <div class="kicker">Pillar 1</div>
+    <h1>The model is<br>assumed perfect</h1>
+    <p class="sub frag" style="margin-top:4vh">How much would it take to change the inference?</p>
+  </section>
+
+  <!-- 4 ▸ STAT CARDS: how often do we check, and how well? -->
+  <section class="slide" data-name="check-stats">
+    <div class="kicker">Pillar 1 · how often do we check, and how well?</div>
+    <h2>Rarely checked, and often checked wrong</h2>
+    <div class="vfill" style="flex-direction:column;gap:3.5vh">
+      <div class="cards">
+        <div class="card frag" data-order="1" data-group="a"><div class="big accent-a">0 of 25</div><div class="lbl">difference-in-differences studies (2020–22, top management journals) that tested sensitivity to parallel trends; 2 of 25 IV studies relaxed the exclusion restriction</div><div class="src">Frake et al. 2025, SMJ, Table A1</div></div>
+        <div class="card frag" data-order="2" data-group="b"><div class="big accent-r">42 of 47</div><div class="lbl">papers applying the ITCV rule of thumb get the benchmarking wrong</div><div class="src">Lonati &amp; Wulff 2026, Journal of Management</div></div>
+        <div class="card frag" data-order="2" data-group="b"><div class="big accent-r">80%</div><div class="lbl">of published articles in top management outlets that report an ITCV did so for models estimated with robust standard errors, which you should not do (41 of 51)</div><div class="src">Lonati &amp; Wulff 2026, SSRN working paper</div></div>
+      </div>
+      <blockquote class="quote frag" data-order="3">“Only appropriate designs and identification strategies conclusively address omitted variable concerns.”
+        <cite>Wulff, Sajons, Pogrebna, Lonati, Bastardoz, Banks &amp; Antonakis (2023), The Leadership Quarterly</cite>
+        <span class="gloss">Design first. Sensitivity analysis is for what the design cannot rule out, and it should be applied with caution.</span>
+      </blockquote>
+    </div>
+  </section>
+
+  <!-- 5 ▸ VIDEO: the general case, omitted-variable bias (Fisher vs Cornfield) -->
+  <section class="slide" data-name="smoke">
+    <div class="kicker">Pillar 1 · the general case: omitted-variable bias</div>
+    <div class="vidwrap"><video class="anim" muted playsinline
+      data-src="videos/smoke_s0.mp4"
+      data-seq="videos/smoke_s0.mp4|videos/smoke_s1.mp4|videos/smoke_s2.mp4|videos/smoke_s3.mp4|videos/smoke_s4.mp4|videos/smoke_s5.mp4|videos/smoke_s6.mp4|videos/smoke_s7.mp4|videos/smoke_s8.mp4|videos/smoke_s9.mp4|videos/smoke_s10.mp4|videos/smoke_s11.mp4|videos/smoke_s12.mp4"></video></div>
+    <p class="caption">Fisher (1958, Nature) · Cornfield et al. (1959, JNCI) · numbers as told in Pearl &amp; Mackenzie (2018), The Book of Why, ch. 5.</p>
+  </section>
+
+  <!-- 6 ▸ VIDEO: regression sensitivity. Opens on the final frame of slide 5 (see leadership_dag in scenes.py) -->
+  <section class="slide" data-name="sens">
+    <div class="kicker">Pillar 1 · sensemakr</div>
+    <div class="vidwrap"><video class="anim" muted playsinline
+      data-src="videos/sens_s0.mp4"
+      data-seq="videos/sens_s0.mp4|videos/sens_s1.mp4|videos/sens_s2.mp4|videos/sens_s3.mp4|videos/sens_s4.mp4|videos/sens_s5.mp4|videos/sens_s6.mp4|videos/sens_s7.mp4|videos/sens_s8.mp4"></video></div>
+    <p class="caption">Stylised simulation, 600 teams. Bounds for a confounder k× as strong as prior performance: Cinelli &amp; Hazlett (2020). Axes: partial R².</p>
+  </section>
+
+  <!-- 7 ▸ BRIDGE: the same question in other designs -->
+  <section class="slide" data-name="designs">
+    <div class="kicker">Pillar 1 · beyond regression</div>
+    <h2>The same question works for every design</h2>
+    <div class="vfill" style="align-items:flex-start;padding-top:3vh">
+      <div class="tbl3">
+        <div class="h">Design</div><div class="h">It assumes</div><div class="h">How wrong may that be? Measured against…</div>
+        <div class="k">Regression</div>
+        <div class="v">no unobserved confounder</div>
+        <div class="v"><b>an observed control.</b> Is the confounder as strong as prior performance? Twice? Three times?<small>Cinelli &amp; Hazlett 2020 · benchmark bounds</small></div>
+        <div class="k frag" data-order="1" data-group="d">Difference-in-differences</div>
+        <div class="v frag" data-order="1" data-group="d">parallel trends</div>
+        <div class="v frag" data-order="1" data-group="d"><b>the biggest violation of parallel trends before the treatment.</b><small>Rambachan &amp; Roth 2023 · relative magnitudes</small></div>
+        <div class="k frag" data-order="2" data-group="i">Instrument</div>
+        <div class="v frag" data-order="2" data-group="i">the instrument works only through the treatment</div>
+        <div class="v frag" data-order="2" data-group="i"><b>the instrument's total effect on the outcome.</b> How much of it may bypass the treatment?<small>Conley, Hansen &amp; Rossi 2012 · plausibly exogenous</small></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 ▸ VIDEO: CEO succession DiD, parallel trends and the pre-period benchmark -->
+  <section class="slide" data-name="ceo">
+    <div class="kicker">Pillar 1 · difference-in-differences</div>
+    <div class="vidwrap"><video class="anim" muted playsinline
+      data-src="videos/ceo_s0.mp4"
+      data-seq="videos/ceo_s0.mp4|videos/ceo_s1.mp4|videos/ceo_s2.mp4|videos/ceo_s3.mp4|videos/ceo_s4.mp4|videos/ceo_s5.mp4"></video></div>
+    <p class="caption">Stylised simulation: 1,000 firms, 500 replace their CEO after year 5. Robust 95% intervals: Rambachan &amp; Roth (2023), relative magnitudes, via diff-diff.</p>
+  </section>
+
+  <!-- 9 ▸ VIDEO: the instrument (random invitation), and how much of its effect may bypass the programme -->
+  <section class="slide" data-name="iv">
+    <div class="kicker">Pillar 1 · instruments</div>
+    <div class="vidwrap"><video class="anim" muted playsinline
+      data-src="videos/iv_s0.mp4"
+      data-seq="videos/iv_s0.mp4|videos/iv_s1.mp4|videos/iv_s2.mp4|videos/iv_s3.mp4|videos/iv_s4.mp4|videos/iv_s5.mp4|videos/iv_s6.mp4"></video></div>
+    <p class="caption">Stylised simulation, 2,000 managers; design after Sajons (2020). Band: 95% intervals at each assumed direct effect (Conley, Hansen &amp; Rossi 2012).</p>
+  </section>
+
+  <!-- 10 ▸ TABLE: the same move for every design -->
+  <section class="slide" data-name="menu">
+    <div class="kicker">Pillar 1 · the general move</div>
+    <h2>Every design has a breakdown value. Report it.</h2>
+    <div class="vfill" style="align-items:flex-start;padding-top:1.5vh">
+      <div class="tbl">
+        <div class="k frag" data-order="1" data-group="r">Regression</div>
+        <div class="v frag" data-order="1" data-group="r">Cinelli &amp; Hazlett 2020 <b>sensemakr</b>: bounds in multiples of an observed control · Lonati &amp; Wulff 2026 <b>bootmakr</b>: bootstrapped inference for sensemakr · Oster 2019 δ · Frank 2000 ITCV
+          <small>Lonati &amp; Wulff 2026 (SSRN): do not use the ITCV with robust standard errors; bootstrap the sensemakr quantities instead. The ITCV and control-variable correlations also live on different scales, so do not benchmark one against the other (Lonati &amp; Wulff 2026, JOM).</small></div>
+        <div class="k frag" data-order="2" data-group="q">Instrument</div>
+        <div class="v frag" data-order="2" data-group="q">Conley, Hansen &amp; Rossi 2012 <b>plausibly exogenous</b> (plausexog) · Cinelli &amp; Hazlett 2025 · Bastardoz et al. 2023 (LQ) for the leadership-specific pitfalls</div>
+        <div class="k frag" data-order="2" data-group="q">Diff-in-diff</div>
+        <div class="v frag" data-order="2" data-group="q">Rambachan &amp; Roth 2023 <b>honest parallel trends</b> (honestdid) · Frake et al. 2025 (SMJ) as the management template</div>
+        <div class="k frag accent-a" data-order="3" data-group="e">Every time</div>
+        <div class="v frag" data-order="3" data-group="e"><b>1.</b> report the breakdown value &nbsp;<b>2.</b> argue its plausibility from theory and context &nbsp;<b>3.</b> never drop the analysis because you dislike the answer
+          <small>Dropping a sensitivity analysis distorts the literature exactly like p-hacking does.</small></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 ▸ GUIDANCE FROM INSIDE THE FIELD: pillar 1 (all rows at once; not walked through) -->
+  <section class="slide" data-name="lead-examples-1">
+    <div class="kicker">Pillar 1 · guidance from inside the field</div>
+    <h2>Make the assumption true by design, or say how much it can fail</h2>
+    <div class="vfill" style="align-items:flex-start;padding-top:1vh">
+      <div class="refs">
+        <div class="ref"><div class="who">Sajons 2020<small>The Leadership Quarterly</small></div><div class="what">A tutorial on <b>experimentally randomised instruments</b>: randomise the encouragement, then estimate the effect of the measured endogenous variable. The design behind the invitation example.</div></div>
+        <div class="ref"><div class="who">Bastardoz et al. 2023<small>The Leadership Quarterly</small></div><div class="what"><b>Instrumental variables</b>: the assumptions, the pitfalls in how the field uses them, and guidelines for justifying an instrument.</div></div>
+        <div class="ref"><div class="who">Hünermund, Louw &amp; Rönkkö 2025<small>The Leadership Quarterly</small></div><div class="what"><b>Causal diagrams for choosing controls</b>: which variables to adjust for, and which to leave out because adjusting for them creates bias.</div></div>
+        <div class="ref"><div class="who">“Grounded in causality”<small>The Leadership Quarterly · open call, deadline November 2026</small></div><div class="what">Special issue on <b>elevating evidence for leadership practice</b>: the field is asking for exactly these designs and checks.</div></div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- 12 ▸ ACT II DIVIDER -->
+  <section class="slide center divider" data-name="act2">
+    <div class="kicker">Pillar 2</div>
+    <h1>The hypothesis is<br>only a direction</h1>
+    <p class="sub frag" style="margin-top:4vh">"X increases Y" — every positive number counts as support</p>
+  </section>
+
+  <!-- 13 ▸ STAT CARDS: vagueness -->
+  <section class="slide" data-name="vague-stats">
+    <div class="kicker">Pillar 2 · how vague are we?</div>
+    <h2>Our theories almost never say how much, or what shape</h2>
+    <div class="vfill">
+      <div class="cards">
+        <div class="card frag" data-order="1" data-group="a"><div class="big accent-s">183</div><div class="lbl">propositions in the 20 most-cited theory papers in AMR, 1985–2009</div><div class="src">Edwards &amp; Berry 2010, ORM</div></div>
+        <div class="card frag" data-order="1" data-group="a"><div class="big accent-r">0</div><div class="lbl">of them predicted a magnitude or a range</div><div class="src">same review</div></div>
+        <div class="card frag" data-order="1" data-group="a"><div class="big accent-r">97%</div><div class="lbl">were silent on functional form</div><div class="src">same review</div></div>
+        <div class="card frag" data-order="2"><div class="big accent-a">24%</div><div class="lbl">of SMJ articles log-transformed the outcome with no discussion of the functional form that implies</div><div class="src">Villadsen &amp; Wulff 2021, BJM</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 ▸ VIDEO: directional bar -->
+  <section class="slide" data-name="regime">
+    <div class="kicker">Pillar 2 · from directions to regimes</div>
+    <div class="vidwrap"><video class="anim" muted playsinline
+      data-src="videos/regime_s0.mp4"
+      data-seq="videos/regime_s0.mp4|videos/regime_s1.mp4|videos/regime_s2.mp4|videos/regime_s3.mp4|videos/regime_s4.mp4|videos/regime_s5.mp4"></video></div>
+    <p class="caption">Followers per leader and team output, a stylised simulation of 40 then 1,000 teams: a directional hypothesis cannot lose, a regime hypothesis can.</p>
+  </section>
+
+  <!-- 15 ▸ PRECISION LADDER -->
+  <section class="slide" data-name="ladder">
+    <div class="kicker">Pillar 2 · the precision ladder</div>
+    <h2>Three rungs, each one a harder test</h2>
+    <div class="vfill">
+      <ul class="rows tight" style="max-width:84vw">
+        <li class="frag" data-order="1"><span class="n">1</span><span><b>Direction</b> — "a leader with more followers gets more done" → test H₀: β = 0.<small>Where almost every paper stops.</small></span></li>
+        <li class="frag" data-order="2"><span class="n">2</span><span><b>Model-implied regime</b> — "at a diminishing rate" → reject <em>both</em> β ≤ 0 and β ≥ 1 (two one-sided tests).<small>The boundaries 0 and 1 come from the log-link model you already run: an elasticity below 1 is diminishing returns, above 1 increasing returns. Finite attention predicts β &lt; 1; a vision that reaches every follower at once predicts β = 1; followers learning from each other predicts β &gt; 1. "More is better" is silent on the shape; the regime test is not.</small></span></li>
+        <li class="frag" data-order="3"><span class="n">3</span><span><b>Theory-implied interval</b> — a formal model pins β to a value or a narrow range; test equivalence to it.<small>Leadership version: Simonton's model fixes the optimum of perceived leadership at 1.2 SD above the group's mean IQ; the test is equivalence to that value (Antonakis, House &amp; Simonton 2017).</small></span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 16 ▸ METHOD GUIDANCE: pillar 2 (all rows at once; not walked through) -->
+  <section class="slide" data-name="lead-examples-2">
+    <div class="kicker">Pillar 2 · method guidance</div>
+    <h2>How to say how much, and what shape</h2>
+    <div class="vfill" style="align-items:flex-start;padding-top:1vh">
+      <div class="refs">
+        <div class="ref"><div class="who">Edwards &amp; Berry 2010<small>Organizational Research Methods</small></div><div class="what"><b>The presence of something or the absence of nothing.</b> Why a directional proposition is a weak test, and how a theory can say more: the size of the effect, its functional form, where it holds.</div></div>
+        <div class="ref"><div class="who">Edwards &amp; Christian 2014<small>Organizational Psychology Review</small></div><div class="what"><b>Calibrate propositions from accumulated knowledge.</b> Use the estimates a field has already collected to turn “X increases Y” into an expected magnitude.</div></div>
+        <div class="ref"><div class="who">Villadsen &amp; Wulff 2021<small>British Journal of Management</small></div><div class="what"><b>Statistical myths about log-transformed dependent variables.</b> Logging the outcome is a choice of functional form, an exponential model, not a fix for skewed data; estimate that model directly and say what it implies.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 ▸ ACT III DIVIDER -->
+  <section class="slide center divider" data-name="act3">
+    <div class="kicker">Pillar 3</div>
+    <h1>The test is<br>a point null</h1>
+    <p class="sub frag" style="margin-top:4vh">H₀: β = 0.000… — from statistical to practical significance</p>
+  </section>
+
+  <!-- 18 ▸ VIDEO: nil null simulation -->
+  <section class="slide" data-name="nilnull">
+    <div class="kicker">Pillar 3 · significance versus sample size</div>
+    <div class="vidwrap"><video class="anim" muted playsinline
+      data-src="videos/nilnull_s0.mp4"
+      data-seq="videos/nilnull_s0.mp4|videos/nilnull_s1.mp4|videos/nilnull_s2.mp4|videos/nilnull_s3.mp4|videos/nilnull_s4.mp4"></video></div>
+    <p class="caption">A workshop with a tiny true effect, d = 0.1: Welch t-tests in 5,000 simulated studies per n; a re-run of Holgersen, Lakens &amp; Wulff, Fig. 2.</p>
+  </section>
+
+  <!-- 19 ▸ VIDEO: SESOI intervals -->
+  <section class="slide" data-name="sesoi">
+    <div class="kicker">Pillar 3 · the smallest effect size of interest</div>
+    <div class="vidwrap"><video class="anim" muted playsinline
+      data-src="videos/sesoi_s0.mp4"
+      data-seq="videos/sesoi_s0.mp4|videos/sesoi_s1.mp4|videos/sesoi_s2.mp4|videos/sesoi_s3.mp4|videos/sesoi_s4.mp4"></video></div>
+    <p class="caption">Minimum-effect and equivalence tests: two one-sided tests against a band you declared in advance (Lakens 2017; Smiley, Glazier &amp; Shoda 2023).</p>
+  </section>
+
+  <!-- 20 ▸ FROM STATISTICAL TO PRACTICAL SIGNIFICANCE -->
+  <section class="slide" data-name="practical">
+    <div class="kicker">Pillar 3 · from statistical to practical significance</div>
+    <h2>Four moves from "p &lt; .05" to "this matters"</h2>
+    <div class="vfill" style="align-items:flex-start;padding-top:1vh">
+      <div class="steps">
+        <div class="step frag"><div class="num accent-r">1</div><div class="head">p &lt; .05 only says "not exactly zero"</div><div class="body">With enough data it says that about every effect.</div></div>
+        <div class="step frag"><div class="num accent-a">2</div><div class="head">Declare the smallest effect that matters, before the data</div><div class="body">From the field's benchmarks, from what the programme costs, or from the model's own boundaries.</div></div>
+        <div class="step frag"><div class="num accent-s">3</div><div class="head">Test against it, with α that shrinks as n grows</div><div class="body">Two one-sided tests against the band. A fixed 5% is far too lax at 2,000 per group (Wulff &amp; Taylor 2024).</div></div>
+        <div class="step frag"><div class="num accent-g">4</div><div class="head">Report in the units decisions are made in</div><div class="body">A charismatic speech: <b>+17% output</b> (Antonakis et al. 2022). One SD of manager talent: <b>+10% productivity</b> (Fenizia 2022).</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21 ▸ PILLAR 3: one informative null result from the field, and the method references (all rows at once) -->
+  <section class="slide" data-name="lead-examples-3">
+    <div class="kicker">Pillar 3 · an example, and the method guidance</div>
+    <h2>Null results that were designed to be informative</h2>
+    <div class="vfill" style="align-items:flex-start;padding-top:1vh">
+      <div class="refs">
+        <div class="ref"><div class="who">Alzahawi &amp; Flynn 2025<small>The Leadership Quarterly</small></div><div class="what"><b>Five preregistered experiments</b> pit competing shapes against each other (negative, positive, inverted-U, moderated). The preregistered tests found <b>no support</b> for the curvilinear or moderated forms; Bayes factors are reported alongside the p-values.</div></div>
+        <div class="ref"><div class="who">Lakens 2017<small>Social Psychological and Personality Science</small></div><div class="what"><b>Equivalence tests, a practical primer</b>: two one-sided tests against a smallest effect size of interest, for t tests, correlations and meta-analyses.</div></div>
+        <div class="ref"><div class="who">Lakens, Scheel &amp; Isager 2018<small>Advances in Methods and Practices in Psychological Science</small></div><div class="what"><b>Equivalence testing, a tutorial</b>: how to justify the equivalence bounds, power the test and report it.</div></div>
+        <div class="ref"><div class="who">Holgersen, Lakens &amp; Wulff<small>“Blaming the thermometer for the fever” · working paper</small></div><div class="what">The problems blamed on significance testing come from how it is applied. <b>Declare a minimum effect of interest, let α depend on n, report the null results.</b> Slide 18 re-runs its Fig. 2.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 22 ▸ DAY ONE THROUGH THREE LENSES -->
+  <section class="slide" data-name="day-one">
+    <div class="kicker">Yesterday, through three lenses</div>
+    <h2>Three questions to ask of every talk from day one</h2>
+    <div class="vfill">
+      <div class="qgrid">
+        <div class="q frag"><div class="pill accent-s">Pillar 1 · model</div><div class="ask">Which assumption was treated as exact?</div><div class="hint">No confounder, parallel trends, exclusion. What is the breakdown value, and would the author bet on it?</div></div>
+        <div class="q frag"><div class="pill accent-a">Pillar 2 · hypothesis</div><div class="ask">Was that a direction, or a regime?</div><div class="hint">Could a rival mechanism have "predicted" the same sign? What shape or range would the theory have to defend?</div></div>
+        <div class="q frag"><div class="pill accent-g">Pillar 3 · test</div><div class="ask">"No effect" — compared with what?</div><div class="hint">Was a smallest effect of interest declared? Was the null result an equivalence result, or just an underpowered one?</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 23 ▸ VIDEO: temple rebuilt -->
+  <section class="slide" data-name="rebuilt">
+    <div class="kicker">Closing</div>
+    <div class="vidwrap"><video class="anim" muted playsinline
+      data-src="videos/rebuilt_s0.mp4"
+      data-seq="videos/rebuilt_s0.mp4|videos/rebuilt_s1.mp4|videos/rebuilt_s2.mp4|videos/rebuilt_s3.mp4|videos/rebuilt_s4.mp4"></video></div>
+    <p class="caption">Bounded models, regime hypotheses, tests against what matters.</p>
+  </section>
+
+
+  <!-- 24 ▸ THANKS -->
+  <section class="slide center" data-name="thanks">
+    <div class="fg">
+      <h1 style="font-size:clamp(2.8rem,6vw,5.6rem)">Thank you</h1>
+      <p class="sub" style="margin-top:3.5vh">Jesper N. Wulff · Aarhus University · jwulff@econ.au.dk</p>
+      <p class="sub" style="margin-top:4vh;font-size:clamp(1rem,1.5vw,1.4rem);max-width:80vw;line-height:1.6">
+        Rambachan &amp; Roth 2023 REStud · Conley, Hansen &amp; Rossi 2012 REStat · Cinelli &amp; Hazlett 2020 JRSS-B · Frake et al. 2025 SMJ · Lonati &amp; Wulff 2026 JOM · Lonati &amp; Wulff 2026 SSRN 6789678 (bootmakr) ·
+        Edwards &amp; Berry 2010 ORM · Edwards &amp; Christian 2014 OPR · Villadsen &amp; Wulff 2021 BJM · Lakens 2017 SPPS · Lakens, Scheel &amp; Isager 2018 AMPPS · Holgersen, Lakens &amp; Wulff (working paper) · Smiley, Glazier &amp; Shoda 2023 RSOS · Wulff &amp; Taylor 2024 Strategic Organization ·
+        Wulff et al. 2023 LQ · Antonakis, House &amp; Simonton 2017 JAP · Alzahawi &amp; Flynn 2025 LQ · Huson, Malatesta &amp; Parrino 2004 JFE
+      </p>
+      <p class="sub" style="margin-top:2vh;font-size:clamp(.85rem,1.2vw,1.1rem);max-width:80vw;line-height:1.5;color:#64748B">
+        The CEO-succession, regression-sensitivity, invitation and followers-per-leader examples are stylised simulations (seed 2026); robust intervals computed with the diff-diff implementation of Rambachan &amp; Roth (2023), sensitivity quantities with the Cinelli &amp; Hazlett (2020) formulas.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<div id="progress"></div>
+<div id="counter"></div>
+<div id="help">← → navigate · F fullscreen</div>
+
+<script>
+/* ==================== deck engine — battle-tested, keep intact ============
+   Features: segmented videos (data-seq) with seamless freeze-frame swaps and
+   prefetch; fragments with data-order + data-group; focus on last step;
+   per-slide progress dots; keys/click/touch/hash navigation. */
+const slides=[...document.querySelectorAll('.slide')];
+const progress=document.getElementById('progress');
+const counter=document.getElementById('counter');
+let cur=-1;
+
+function ensureSrc(v){ if(!v.src && v.dataset.src){ v.src=v.dataset.src; v.load(); } }
+function seqList(v){ return v.dataset.seq ? v.dataset.seq.split('|') : null; }
+
+/* fragment steps: ordered by data-order (default DOM order), grouped by data-group */
+function fragSteps(s){
+  const els=[...s.querySelectorAll('.frag')].map((el,i)=>({el,
+    key:el.dataset.order!==undefined?parseFloat(el.dataset.order):i+1000}));
+  els.sort((a,b)=>a.key-b.key);
+  const steps=[];
+  for(const {el} of els){
+    const g=el.dataset.group;
+    const last=steps[steps.length-1];
+    if(g && last && last.group===g){ last.els.push(el); }
+    else steps.push({group:g||null, els:[el]});
+  }
+  return steps;
+}
+
+function seqVideo(s){ return s.querySelector('video[data-seq]'); }
+function segDots(s){
+  const v=seqVideo(s); if(!v)return;
+  let d=s.querySelector('.segdots');
+  if(!d){ d=document.createElement('div'); d.className='segdots';
+    seqList(v).forEach(()=>d.appendChild(document.createElement('i')));
+    s.appendChild(d); }
+  [...d.children].forEach((c,i)=>c.classList.toggle('on', i<=(v._seg||0)));
+}
+
+/* freeze the current frame over the video while the next segment loads,
+   so segment swaps look like one continuous animation */
+function freeze(v){
+  try{
+    if(!v.videoWidth || v.readyState<2) return null;
+    const cv=document.createElement('canvas');
+    cv.width=v.videoWidth; cv.height=v.videoHeight;
+    cv.getContext('2d').drawImage(v,0,0);
+    const r=v.getBoundingClientRect();
+    Object.assign(cv.style,{position:'fixed',left:r.left+'px',top:r.top+'px',
+      width:r.width+'px',height:r.height+'px',borderRadius:getComputedStyle(v).borderRadius,
+      zIndex:40,pointerEvents:'none'});
+    document.body.appendChild(cv);
+    return cv;
+  }catch(e){ return null; }
+}
+function unfreezeWhenReady(v,cv){
+  if(!cv) return;
+  let done=false;
+  const kill=()=>{ if(!done){done=true; cv.remove();} };
+  if(v.requestVideoFrameCallback){ v.requestVideoFrameCallback(()=>requestAnimationFrame(kill)); }
+  else { v.addEventListener('playing',()=>setTimeout(kill,60),{once:true});
+         v.addEventListener('seeked',()=>setTimeout(kill,60),{once:true}); }
+  setTimeout(kill,1200);
+}
+function loadSeg(v,i,{play=true,toEnd=false,seamless=true}={}){
+  const cv=seamless?freeze(v):null;
+  v._seg=i;
+  v.src=seqList(v)[i];
+  v.load();
+  if(toEnd){
+    v.addEventListener('loadedmetadata',function h(){
+      v.removeEventListener('loadedmetadata',h);
+      v.currentTime=Math.max(0,v.duration-0.05); v.pause();
+    });
+  } else if(play){ v.currentTime=0; v.play().catch(()=>{}); }
+  unfreezeWhenReady(v,cv);
+  const nxt=seqList(v)[i+1];
+  if(nxt){ fetch(nxt,{cache:'force-cache'}).catch(()=>{}); }
+  segDots(v.closest('.slide'));
+}
+
+/* focus: the last-revealed fragment step gets .focus (drives focus-zoom rows) */
+function refocus(s){
+  const on=fragSteps(s).filter(st=>st.els[0].classList.contains('on'));
+  s.querySelectorAll('.frag.focus').forEach(e=>e.classList.remove('focus'));
+  if(on.length){ on[on.length-1].els.forEach(e=>e.classList.add('focus')); }
+}
+
+function show(i){
+  i=Math.max(0,Math.min(slides.length-1,i));
+  if(i===cur)return;
+  if(cur>=0){
+    slides[cur].classList.remove('active');
+    slides[cur].querySelectorAll('video').forEach(v=>v.pause());
+  }
+  cur=i;
+  const s=slides[cur];
+  s.classList.add('active');
+  s.querySelectorAll('video').forEach(v=>{
+    if(v.dataset.seq){ loadSeg(v,0,{seamless:false}); }
+    else { ensureSrc(v); v.currentTime=0; v.play().catch(()=>{}); }
+  });
+  [slides[cur+1],slides[cur-1]].forEach(n=>n&&n.querySelectorAll('video').forEach(ensureSrc));
+  progress.style.width=((cur)/(slides.length-1)*100)+'%';
+  counter.textContent=(cur+1)+' / '+slides.length;
+  history.replaceState(null,'','#'+(cur+1));
+}
+
+function next(){
+  const s=slides[cur];
+  const v=seqVideo(s);
+  if(v && (v._seg||0) < seqList(v).length-1){ loadSeg(v,(v._seg||0)+1); return; }
+  const step=fragSteps(s).find(st=>!st.els[0].classList.contains('on'));
+  if(step){ step.els.forEach(e=>e.classList.add('on')); refocus(s); return; }
+  show(cur+1);
+}
+function prev(){
+  const s=slides[cur];
+  const steps=fragSteps(s).filter(st=>st.els[0].classList.contains('on'));
+  if(steps.length){ steps[steps.length-1].els.forEach(e=>e.classList.remove('on')); refocus(s); return; }
+  const v=seqVideo(s);
+  if(v && (v._seg||0) > 0){ loadSeg(v,(v._seg||0)-1,{toEnd:true}); return; }
+  if(cur>0){
+    show(cur-1);
+    const ps=slides[cur];
+    fragSteps(ps).forEach(st=>st.els.forEach(e=>e.classList.add('on')));
+    refocus(ps);
+    const pv=seqVideo(ps);
+    if(pv){ loadSeg(pv,seqList(pv).length-1,{toEnd:true,seamless:false}); }
+  }
+}
+addEventListener('keydown',e=>{
+  if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();next();}
+  else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();prev();}
+  else if(e.key==='Home')show(0);
+  else if(e.key==='End')show(slides.length-1);
+  else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}
+});
+addEventListener('click',e=>{
+  const v=e.target.closest('video.anim');
+  if(v){
+    if(v.dataset.seq){ next(); }
+    else { v.currentTime=0; v.play(); }
+    return;
+  }
+  if(e.target.closest('a'))return;
+  (e.clientX>innerWidth*0.3)?next():prev();
+});
+let tx=null;
+addEventListener('touchstart',e=>tx=e.touches[0].clientX);
+addEventListener('touchend',e=>{
+  if(tx===null)return;
+  const dx=e.changedTouches[0].clientX-tx;
+  if(Math.abs(dx)>60)(dx<0?next():prev());
+  tx=null;
+});
+show(Math.max(0,(parseInt(location.hash.slice(1))||1)-1));
+</script>
+</body>
+</html>
